@@ -1,0 +1,221 @@
+---
+title: "Latihan_Porto_Netflix"
+author: "Deswina"
+date: '2022-07-02'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+library(readxl)
+library(lubridate)
+library(mice)
+library(naniar)
+library(tidyverse)
+```
+```{r}
+netflix <- read_xlsx("Data/netflix_titles.xlsx")
+  
+```
+```{r}
+netflix
+```
+#Mengecek jumlah missing values
+```{r}
+sapply(netflix, function(x) sum(is.na(x)))
+
+```
+```{r}
+netflix %>% 
+  filter(is.na(duration) | is.na(rating) | is.na(date_added))
+```
+
+#Mengecek duplicates
+```{r}
+sum(duplicated(netflix))
+```
+```{r}
+summary(netflix)
+```
+```{r}
+miss_var_summary(netflix)
+```
+```{r}
+miss_case_summary(netflix)
+```
+```{r}
+df_netflix <- netflix %>% 
+  select(-director) %>% 
+  filter(!is.na(cast)) %>% 
+  filter(!is.na(date_added)) %>% 
+  filter(!is.na(country))
+```
+```{r}
+miss_var_summary(df_netflix)
+```
+```{r}
+df_netflix %>% 
+  filter(is.na(duration))
+```
+
+```{r}
+df_netflix <- df_netflix %>% 
+  mutate(duration = case_when(show_id =="s5542" ~ "74 min",
+                              show_id =="s5795" ~ "84 min",
+                              show_id =="s5814" ~ "66 min",
+                              TRUE ~ duration)) %>% 
+  mutate(rating = case_when(show_id =="s5542" ~ "",
+                              show_id =="s5795" ~ "",
+                              show_id =="s5814" ~ "",
+                              TRUE ~ rating)) 
+ 
+df_netflix %>% 
+ filter(show_id =="s5542" | show_id =="s5795" | show_id =="s5814")
+```
+```{r}
+calc_mode <- function(x){
+  
+  # List the distinct / unique values
+  distinct_values <- unique(x)
+  
+  # Count the occurrence of each distinct value
+  distinct_tabulate <- tabulate(match(x, distinct_values))
+  
+  # Return the value with the highest occurrence
+  distinct_values[which.max(distinct_tabulate)]
+}
+```
+```{r}
+  calc_mode(df_netflix$rating)
+```
+```{r}
+df_netflix <- df_netflix %>% 
+  mutate(rating = ifelse(is.na(rating), "TV-MA", rating)) %>% 
+  mutate(rating = ifelse(rating == "", "TV-MA", rating))
+    
+```
+
+```{r}
+miss_var_summary(df_netflix)
+```
+```{r}
+#df_netflix %>% 
+ # separate(country, into = c('a','b','c','d','e','f','g','h','i','j','k','l')
+  #       ,", ", convert = TRUE)
+```
+```{r}
+remove(df_country)
+```
+
+#This is how you split the column of countries at the comma and then unest it into multiple rows
+```{r}
+ df_country <- df_netflix %>% 
+    mutate(country = strsplit(as.character(country), ",")) %>% 
+    unnest(country) %>%
+      mutate(country = trimws(country, which = c("left"))) %>% #eliminate space on the left side
+    filter(!is.na(country))
+```
+1. Where do the majority of movies available on Netflix come from?
+```{r}
+df_country %>% 
+  group_by(country) %>% 
+  filter(type == "Movie") %>% 
+  summarise(total=n()) %>% 
+  arrange(desc(total))
+```
+
+```{r}
+df_country %>% 
+  group_by(country) %>% 
+  filter(type == "TV Show") %>% 
+  summarise(total=n()) %>% 
+  arrange(desc(total))
+```
+#This is how you split the column of cast at the comma and then unest it into multiple rows
+```{r}
+df_cast <- df_netflix %>% 
+  select(c('show_id','type','title','cast','date_added','country','release_year','listed_in','duration')) %>% 
+        gather(key = 'role', value = 'person', cast) %>% 
+             filter(person != "") %>% separate_rows(person, sep = ',')
+```
+2. Who are the actors that appear in the most movies/shows?
+```{r}
+df_cast %>% 
+  group_by(person) %>% 
+  filter(type == "Movie") %>% 
+  summarise(total = n()) %>% 
+  arrange(desc(total))
+```
+```{r}
+df_cast %>% 
+  group_by(person) %>% 
+  filter(type == "TV Show") %>% 
+  summarise(total = n()) %>% 
+  arrange(desc(total))
+```
+3. Which ones are the most abundant genres?
+```{r}
+ df_genre <-df_netflix %>% 
+  select(c('show_id','type','title','cast','date_added','country','release_year','listed_in','duration')) %>% 
+        gather(key = 'role', value = 'genre', listed_in) %>% 
+             filter(genre != "") %>% 
+              separate_rows(genre, sep = ',')
+```
+
+```{r}
+df_genre %>% 
+  group_by(genre) %>% 
+  filter(type == "TV Show") %>% 
+  summarise(total = n()) %>% 
+  unique() %>% 
+  arrange(desc(total))
+```
+```{r}
+df_genre %>% 
+  group_by(genre) %>% 
+  filter(type == "Movie") %>% 
+  summarise(total = n()) %>% 
+  arrange(desc(total))
+```
+```
+
+
+
+```{r}
+#any(is.na(netflix))
+
+#md.pattern(netflix)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
