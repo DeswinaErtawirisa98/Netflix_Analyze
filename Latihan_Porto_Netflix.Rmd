@@ -17,6 +17,11 @@ library(mice)
 library(naniar)
 library(tidyverse)
 ```
+
+### Extract
+
+
+
 ```{r}
 netflix <- read_xlsx("Data/netflix_titles.xlsx")
   
@@ -24,29 +29,40 @@ netflix <- read_xlsx("Data/netflix_titles.xlsx")
 ```{r}
 netflix
 ```
-#Mengecek jumlah missing values
+
+### Transform
+
+
+
+#Check Missing Values
 ```{r}
 sapply(netflix, function(x) sum(is.na(x)))
 
 ```
+#Check Missing Values
 ```{r}
 netflix %>% 
   filter(is.na(duration) | is.na(rating) | is.na(date_added))
 ```
 
-#Mengecek duplicates
+#Chek Duplicates
 ```{r}
 sum(duplicated(netflix))
 ```
+
+#Summary Netflix
 ```{r}
 summary(netflix)
 ```
+#Check Missing Values
 ```{r}
 miss_var_summary(netflix)
 ```
+#Check Missing Values
 ```{r}
 miss_case_summary(netflix)
 ```
+#Drop Missing Values
 ```{r}
 df_netflix <- netflix %>% 
   select(-director) %>% 
@@ -54,14 +70,18 @@ df_netflix <- netflix %>%
   filter(!is.na(date_added)) %>% 
   filter(!is.na(country))
 ```
+
+##Check Missing Values
 ```{r}
 miss_var_summary(df_netflix)
 ```
+#Check Missing Values in Duration
 ```{r}
 df_netflix %>% 
   filter(is.na(duration))
 ```
 
+#Fill NA ini duration
 ```{r}
 df_netflix <- df_netflix %>% 
   mutate(duration = case_when(show_id =="s5542" ~ "74 min",
@@ -76,6 +96,7 @@ df_netflix <- df_netflix %>%
 df_netflix %>% 
  filter(show_id =="s5542" | show_id =="s5795" | show_id =="s5814")
 ```
+#Create mode function
 ```{r}
 calc_mode <- function(x){
   
@@ -89,9 +110,13 @@ calc_mode <- function(x){
   distinct_values[which.max(distinct_tabulate)]
 }
 ```
+
+#Check rating mode
 ```{r}
   calc_mode(df_netflix$rating)
 ```
+
+#Fill NA in rating with rating mode
 ```{r}
 df_netflix <- df_netflix %>% 
   mutate(rating = ifelse(is.na(rating), "TV-MA", rating)) %>% 
@@ -99,17 +124,11 @@ df_netflix <- df_netflix %>%
     
 ```
 
+#Check Missing Values
 ```{r}
 miss_var_summary(df_netflix)
 ```
-```{r}
-#df_netflix %>% 
- # separate(country, into = c('a','b','c','d','e','f','g','h','i','j','k','l')
-  #       ,", ", convert = TRUE)
-```
-```{r}
-remove(df_country)
-```
+
 
 #This is how you split the column of countries at the comma and then unest it into multiple rows
 ```{r}
@@ -119,6 +138,17 @@ remove(df_country)
       mutate(country = trimws(country, which = c("left"))) %>% #eliminate space on the left side
     filter(!is.na(country))
 ```
+
+
+
+
+
+
+### Analyze
+
+
+
+
 1. Where do the majority of movies available on Netflix come from?
 ```{r}
 df_country %>% 
@@ -142,6 +172,7 @@ df_cast <- df_netflix %>%
         gather(key = 'role', value = 'person', cast) %>% 
              filter(person != "") %>% separate_rows(person, sep = ',')
 ```
+
 2. Who are the actors that appear in the most movies/shows?
 ```{r}
 df_cast %>% 
@@ -157,6 +188,7 @@ df_cast %>%
   summarise(total = n()) %>% 
   arrange(desc(total))
 ```
+
 3. Which ones are the most abundant genres?
 ```{r}
  df_genre <-df_netflix %>% 
@@ -181,20 +213,36 @@ df_genre %>%
   summarise(total = n()) %>% 
   arrange(desc(total))
 ```
-```
 
 
 
+### Load
+
+
+
+#Input JSON from API Key.
 ```{r}
-#any(is.na(netflix))
-
-#md.pattern(netflix)
+gs4_auth(path = "my_api_key.json")
 ```
 
+#Assign the Docs into Variable gsheets.
+```{r}
+gsheet <- gs4_get("https://docs.google.com/spreadsheets/d/19sBEd4qaWbHtIyQXsQ8qGdjzlcw3mIdV8tviRpjc_SU/edit?usp=sharing")
+```
 
+#Put the Data to the Sheets in the test Google Sheets we have.
+```{r}
+range_write(gsheet,
+            df_netflix,
+            sheet = "DF_Netflix")
+range_write(gsheet,
+            df_genre,
+            sheet = "DF_Genre")
+range_write(gsheet,
+            df_country,
+            sheet = "DF_Country")
 
-
-
+```
 
 
 
